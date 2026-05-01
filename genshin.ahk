@@ -44,8 +44,8 @@ return
 
 ;----------------------------------------
 ; E가 눌렸을재 Q가 이미 눌려있으면 E와 Q반복
-E::
-Send, e
+~E::
+;Send, e
 
 if (GetKeyState("q", "P"))
 {
@@ -58,9 +58,9 @@ return
 
 ;----------------------------------------
 ; F키가 눌리면 f반복
-F::
+~F::
 SetTimer, RepeatF, Off
-Send, f
+;Send, f
 
 fToggle := true
 SetTimer, RepeatF, %fTimer%
