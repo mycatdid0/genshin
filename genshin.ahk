@@ -12,6 +12,8 @@ qeToggle := false  ; True이면 qe키가 반복된다.
 qeTimer := 300  ; 0.3초 간격
 qeCallCnt := 0 ; e를 누를지 q를 누를지 구분. 교대로 한번씩 눌린다.
 
+m1Toggle := false  ; True이면 마우싀왼쪽버튼이 반복된다.
+m1Timer := 300  ; 0.3초 간격
 
 ttimer := 1000 ; 1초 간격으로 원신 실행중인지 확인
 tSecLimit := 60 ; 60초 동안 원신이 아닐 경우에 종료한다.
@@ -67,9 +69,14 @@ SetTimer, RepeatF, %fTimer%
 RecheckTimerEvent()
 return
 
+
+
+
 ;----------------------------------------
 ; 원신 실행중이 아니면 모든 반복 취소
 RecheckTimerEvent() {
+	return
+	
 	WinGet, hWnd, ID, A
 	WinGet, ProcessName, ProcessName, ahk_id %hWnd%
 	if (ProcessName != "GenshinImpact.exe")
@@ -99,7 +106,6 @@ if( fToggle) {
 	Send, f
 }
 return
-
 
 ;----------------------------------------
 ; Q E 교대로 반복 누름
@@ -150,4 +156,38 @@ return
 ~*3::
 ~*4::
 RemoveAllTimer()
+return
+
+;-----------------------------------
+; 조건 없이 아래부분 실행
+#If
+
+;----------------------------------- 마우스용
+
+;----------------------------------------
+; X1키가 눌리면 f반복
+XButton1::
+SetTimer, RepeatM1, Off
+;Send, f
+
+m1Toggle := true
+SetTimer, RepeatM1, %m1Timer%
+RecheckTimerEvent()
+return
+
+;----------------------------------------
+; X1키가 플리면 f반복
+XButton1 Up::
+	m1Toggle := false
+	SetTimer, RepeatM1, Off
+return
+
+;----------------------------------------
+; 마우스왼쪽 교대로 반복 누름
+RepeatM1:
+RecheckTimerEvent()
+
+if( m1Toggle) {
+	Click
+}
 return
