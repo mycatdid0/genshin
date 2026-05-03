@@ -5,21 +5,22 @@
 #UseHook            ; 키보드 훅을 사용하여 키 입력 감지
 
 
-fToggle := false ; True이면 f키가 반복된다.
-fTimer := 300  ; 0.3초 간격
+global fToggle := false ; True이면 f키가 반복된다.
+global fTimer := 300  ; 0.3초 간격
+global fCallCnt := 0 ; f호출 카운트. 3회이상이면 유지로 한다.
 
-qeToggle := false  ; True이면 qe키가 반복된다.
-qeTimer := 300  ; 0.3초 간격
-qeCallCnt := 0 ; e를 누를지 q를 누를지 구분. 교대로 한번씩 눌린다.
+global qeToggle := false  ; True이면 qe키가 반복된다.
+global qeTimer := 300  ; 0.3초 간격
+global qeCallCnt := 0 ; e를 누를지 q를 누를지 구분. 교대로 한번씩 눌린다.
 
-m1Toggle := false  ; True이면 마우싀왼쪽버튼이 반복된다.
-m1Timer := 300  ; 0.3초 간격
+global m1Toggle := false  ; True이면 마우싀왼쪽버튼이 반복된다.
+global m1Timer := 300  ; 0.3초 간격
 
-ttimer := 1000 ; 1초 간격으로 원신 실행중인지 확인
-tSecLimit := 60 ; 60초 동안 원신이 아닐 경우에 종료한다.
-tSecCnt := 0 ; 종료까지 카운트
+global ttimer := 1000 ; 1초 간격으로 원신 실행중인지 확인
+global tSecLimit := 60 ; 60초 동안 원신이 아닐 경우에 종료한다.
+global tSecCnt := 0 ; 종료까지 카운트
 
-SetTimer, RepeatT, 1000 ; 원신 실행 체크는 1초마다
+;SetTimer, RepeatT, 1000 ; 원신 실행 체크는 1초마다
 
 ;----------------------------------------
 ; 원신 실행중인지 체크 카운트
@@ -44,31 +45,71 @@ RepeatT:
 	}
 return
 
-;----------------------------------------
-; E가 눌렸을재 Q가 이미 눌려있으면 E와 Q반복
-~E::
-;Send, e
+;-------------------------------------------
+; timer 셋팅 함수들
 
-if (GetKeyState("q", "P"))
+StartFTimer()
+{
+	fToggle := true
+	SetTimer, RepeatF, %fTimer%
+	return
+}
+
+CancelFTimer()
+{
+	fToggle := false
+	fCallCnt := 0
+	SetTimer, RepeatF, Off
+	return
+}
+
+StartQETimer()
 {
 	SetTimer, RepeatQE, Off
-
 	qeToggle := true
 	SetTimer, RepeatQE, %qeTimer%
+	return
 }
-return
+
+CancelQETimer()
+{
+	qeToggle := false
+	SetTimer, RepeatQE, Off
+	return
+}
+
+StartM1Timer()
+{
+	SetTimer, RepeatM1, Off
+	;Send, f
+	m1Toggle := true
+	SetTimer, RepeatM1, %m1Timer%
+	return
+}
+
+CancelM1Timer()
+{
+	m1Toggle := false
+	SetTimer, RepeatM1, Off
+	return
+}
 
 ;----------------------------------------
 ; F키가 눌리면 f반복
-~F::
-SetTimer, RepeatF, Off
-;Send, f
-
-fToggle := true
-SetTimer, RepeatF, %fTimer%
-RecheckTimerEvent()
+F::
+	if( fToggle == false) {
+		send f  ; 누르자마자 한번 내보내야 한다.
+		StartFTimer()
+	}
 return
 
+;----------------------------------------
+; F키가 떼이면 f를 멈추되, fCallCnt가 오래 눌렸으면 계속 반복하도록 둔다.
+F up::
+	if( fCallCnt < 2 ) {
+		CancelFTimer()
+	}
+return
 
 
 
@@ -90,36 +131,35 @@ RecheckTimerEvent() {
 ; 모든 반복 취소
 RemoveAllTimer()
 {
-	fToggle := false
-	SetTimer, RepeatF, Off
-	
-	qeToggle := false
-	SetTimer, RepeatQE, Off
+	CancelFTimer()
+	CancelQETimer()
+	return
 }
 
 ;----------------------------------------
 ; F 반복 누름
 RepeatF:
-RecheckTimerEvent()
+	RecheckTimerEvent()
 
-if( fToggle) {
-	Send, f
-}
+	if( fToggle) {
+		Send, f
+		fCallCnt++
+	}
 return
 
 ;----------------------------------------
 ; Q E 교대로 반복 누름
 RepeatQE:
-RecheckTimerEvent()
+	RecheckTimerEvent()
 
-if( qeToggle) {
-	qeCallCnt++
-	if( mod(qeCallCnt, 2 ) == 0 ) {
-		Send, e
-	} else {
-		Send, q
+	if( qeToggle) {
+		qeCallCnt++
+		if( mod(qeCallCnt, 2 ) == 0 ) {
+			Send, e
+		} else {
+			Send, q
+		}
 	}
-}
 return
 
 
@@ -166,28 +206,24 @@ return
 
 ;----------------------------------------
 ; X1키가 눌리면 f반복
-XButton1::
-SetTimer, RepeatM1, Off
-;Send, f
-
-m1Toggle := true
-SetTimer, RepeatM1, %m1Timer%
-RecheckTimerEvent()
+~XButton1::
+	StartM1Timer()
+	StartQETimer()
 return
 
 ;----------------------------------------
-; X1키가 플리면 f반복
-XButton1 Up::
-	m1Toggle := false
-	SetTimer, RepeatM1, Off
+; X1키가 플리면 f반e
+~XButton1 Up::
+	CancelM1Timer()
+	CancelQETimer()
 return
 
 ;----------------------------------------
 ; 마우스왼쪽 교대로 반복 누름
 RepeatM1:
-RecheckTimerEvent()
+	RecheckTimerEvent()
 
-if( m1Toggle) {
-	Click
-}
+	if( m1Toggle) {
+		Click
+	}
 return
